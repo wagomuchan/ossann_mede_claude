@@ -148,7 +148,10 @@ export class Brain {
       if (t.dayMs >= mid) shirt = s.p.on ?? true;
     }
     out.outfit = shirt ? 'shirt' : 'tshirt';
-    const r = Rng.of('tshirt', t.day);
+    // Tシャツは風呂上がりに着替える（日付が変わった瞬間には変わらない）
+    const bathBack = plan.find((s) => s.act === 'back' && s.p.why === 'bath');
+    const shirtDay = bathBack && t.dayMs >= bathBack.start ? t.day : t.day - 1;
+    const r = Rng.of('tshirt', shirtDay);
     const color = T_COLORS[Math.floor(r.next() * T_COLORS.length)];
     rig.setHanten(env.season === 'winter' && !shirt);
     this.tshirtColor = color;

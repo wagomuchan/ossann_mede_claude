@@ -32,9 +32,11 @@ function deskSit(c: Ctx, opts: { slouch?: number; recline?: number; legs?: 'norm
     P.stand(p, c.realT, 1);
     if (k > 0.05) P.walk(p, c.sec * 7, 0.35);
   } else {
-    P.sitChair(p, seat, c.realT, opts);
+    // 座ったまま、ときどき椅子ごと左右にゆらゆら
+    const swivel = noise1(c.realT * 0.12, 77) * 0.22;
+    P.sitChair(p, { pos: seat.pos, yaw: seat.yaw + swivel * k }, c.realT, opts);
+    c.dyn.chairYaw = seat.yaw + swivel * k;
   }
-  c.dyn.chairYaw = seat.yaw;
   return k;
 }
 

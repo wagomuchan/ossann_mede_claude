@@ -107,6 +107,9 @@ function frame(now: number): void {
   inside.kotatsu = !out.asleep && out.visible ? 1 : 0;
   dyn.ac = (env.season === 'summer' || env.season === 'winter') && out.visible ? 1 : 0;
 
+  // 眼鏡のレンズに画面の光が映り込む
+  ossan.rig.mats.lens.emissive.copy(inside.monitorColor).multiplyScalar(inside.monitor * 0.12).add(inside.tvColor.clone().multiplyScalar(inside.tv * 0.08));
+
   world.update(t, env, inside, dyn, realT, dt);
   sound.update(out, env, dyn, t, dt);
   renderer.toneMappingExposure = 1.0 + (1 - env.dayLight) * 0.2 - inside.ceiling * 0.08;
