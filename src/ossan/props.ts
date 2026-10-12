@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OssanRig } from './rig';
 import { fabricTexture } from '../world/textures';
+import { makeTrashBag } from '../world/furniture';
 
 // 手に持つ小道具。毎フレーム activity が「どこにあるか」を指定する。
 
@@ -78,9 +79,10 @@ export class Props {
     // 出前の袋
     g('deliveryBag', mk(new THREE.BoxGeometry(0.26, 0.2, 0.16).translate(0, -0.12, 0), sm('#c9a271', { roughness: 0.9 })), mk(new THREE.BoxGeometry(0.1, 0.03, 0.01), sm('#c9a271'), 0, -0.01, 0));
     // ゴミ袋
-    const tb = mk(new THREE.SphereGeometry(0.17, 12, 10), new THREE.MeshPhysicalMaterial({ color: '#e8ece6', roughness: 0.45, transparent: true, opacity: 0.85 }), 0, -0.2, 0);
-    tb.scale.set(1, 1.15, 0.9);
-    g('trashBag', tb, mk(new THREE.SphereGeometry(0.035, 6, 5), tb.material as THREE.Material, 0, -0.02, 0));
+    // 結び目を持ってぶら下げる
+    const tb = makeTrashBag(5);
+    tb.position.set(0, -0.32, 0);
+    g('trashBag', tb);
     // スナック菓子
     g('snack', mk(new THREE.BoxGeometry(0.15, 0.2, 0.04), sm('#e8a21e', { roughness: 0.35, metalness: 0.3 }), 0, -0.06, 0));
     // 育毛剤

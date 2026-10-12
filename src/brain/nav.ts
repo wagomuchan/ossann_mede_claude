@@ -10,7 +10,7 @@ export const NODES = {
   bedSide: new THREE.Vector3(0.62, 0, -0.33),
   rightMid: new THREE.Vector3(1.08, 0, -0.2),
   frontRight: new THREE.Vector3(1.0, 0, 0.98),
-  laundry: new THREE.Vector3(0.95, 0, 0.82),
+  laundry: new THREE.Vector3(1.05, 0, 0.88),
   frontMid: new THREE.Vector3(-0.35, 0, 1.02),
   leftMid: new THREE.Vector3(-0.78, 0, 0.3),
   fridge: new THREE.Vector3(-0.98, 0, 0.12),

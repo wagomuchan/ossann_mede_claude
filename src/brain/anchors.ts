@@ -35,7 +35,7 @@ export const A = {
   doorKnob: V(-1.75, 0.95, 0.83),
   mirrorFace: V(-0.3, 1.5, -1.33),
   scale: V(-0.3, 0.025, -1.08),
-  laundryBar: V(1.25, 1.24, 1.18),
+  laundryBar: V(1.42, 1.24, 1.24),
   bags: V(-1.56, 0.2, 0.58),
 };
 
@@ -47,7 +47,7 @@ export const PLACES = {
   mirror: { node: 'mirror', pos: NODES.mirror.clone(), yaw: PI } as Place,
   door: { node: 'door', pos: NODES.door.clone(), yaw: -PI / 2 } as Place,
   outside: { node: 'outside', pos: NODES.outside.clone(), yaw: PI / 2 } as Place,
-  laundry: { node: 'laundry', pos: NODES.laundry.clone(), yaw: 0.69 } as Place,
+  laundry: { node: 'laundry', pos: NODES.laundry.clone(), yaw: 0.83 } as Place,
   center: { node: 'center', pos: NODES.center.clone(), yaw: 0.5 } as Place,
   bags: { node: 'leftMid', pos: V(-1.12, 0, 0.5), yaw: -PI / 2 } as Place,
 };

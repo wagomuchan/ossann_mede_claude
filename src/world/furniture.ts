@@ -315,6 +315,17 @@ export function buildFurniture(): Furniture {
   const fridgeDoor = new THREE.Group();
   fridgeDoor.add(at(box(0.03, frH - 0.04, frW, mat('#e6e3dc', { roughness: 0.3 }), 0.012), 0.015, 0, -frW / 2));
   fridgeDoor.add(at(box(0.02, 0.25, 0.02, mat('#b9b5ad')), 0.04, frH * 0.4, -frW + 0.04));
+  // 冷凍室との境目、マグネットとメモ
+  fridgeDoor.add(at(box(0.032, 0.006, frW - 0.01, mat('#bdb9b0')), 0.016, frH * 0.62, -frW / 2));
+  fridgeDoor.add(at(box(0.02, 0.12, 0.02, mat('#b9b5ad')), 0.04, frH * 0.68, -frW + 0.04));
+  const memo = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.09), mat('#f7e98a', { roughness: 0.9 }));
+  memo.rotation.y = Math.PI / 2;
+  memo.rotation.x = 0.08;
+  memo.position.set(0.033, frH * 0.42, -frW * 0.45);
+  fridgeDoor.add(memo);
+  for (const [y, z, c] of [[0.48, -0.3, '#d63a2f'], [0.7, -0.15, '#2f6ad6'], [0.35, -0.12, '#4ab86a']] as const) {
+    fridgeDoor.add(at(box(0.012, 0.025, 0.025, mat(c, { roughness: 0.4 }), 0.005), 0.036, frH * y, z));
+  }
   fridgeDoor.position.set(frD / 2, 0.04, frW / 2);
   fr.add(fridgeDoor);
   // 中身（ドアを開けると見える）
@@ -478,14 +489,9 @@ export function buildFurniture(): Furniture {
   trash.position.set(SPOT.trash.x, 0, SPOT.trash.z);
   root.add(shadowed(trash));
   const trashBags: THREE.Object3D[] = [];
-  const bagMat = new THREE.MeshPhysicalMaterial({ color: '#e8ece6', roughness: 0.4, transparent: true, opacity: 0.85 });
   for (let i = 0; i < 3; i++) {
-    const bag = sphere(0.17, bagMat, 10, 8);
-    bag.scale.set(1, 1.15, 0.9);
-    const knot = sphere(0.04, bagMat, 6, 5);
-    knot.position.y = 0.19;
-    bag.add(knot);
-    bag.position.set([-1.6, -1.47, -1.64][i], 0.17, [0.52, 0.6, 0.66][i]);
+    const bag = makeTrashBag(i);
+    bag.position.set([-1.6, -1.47, -1.64][i], 0, [0.52, 0.6, 0.66][i]);
     bag.rotation.y = i;
     trashBags.push(bag);
     root.add(bag);
@@ -540,7 +546,7 @@ export function buildFurniture(): Furniture {
     cx += w * 0.8;
   }
   laundry.position.set(SPOT.laundry.x, 0, SPOT.laundry.z);
-  laundry.rotation.y = 0.5;
+  laundry.rotation.y = -0.45;
   root.add(laundry);
 
   // ================= 季節の小物 =================
@@ -670,6 +676,47 @@ export function buildFurniture(): Furniture {
     kettleLed,
     ceilingLamp,
   };
+}
+
+/** 口を結んだ半透明のゴミ袋（中身がうっすら見える） */
+export function makeTrashBag(seed: number): THREE.Group {
+  const g = new THREE.Group();
+  const geo = new THREE.SphereGeometry(0.16, 18, 14);
+  const pos = geo.getAttribute('position');
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const n = v.clone().normalize();
+    // 中身のごつごつ感と、上に向かってすぼまる形
+    const bump = 1 + Math.sin(n.x * 9 + seed) * Math.sin(n.z * 7 + seed * 2) * 0.07 + Math.sin(n.y * 11 + seed) * 0.04;
+    const taper = 1 - Math.max(0, n.y) * 0.35;
+    v.set(v.x * bump * taper, v.y * 1.05, v.z * bump * taper);
+    if (v.y < -0.12) v.y = -0.12 - (v.y + 0.12) * 0.15;
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+  const film = new THREE.MeshPhysicalMaterial({ color: '#eef2ec', roughness: 0.35, transparent: true, opacity: 0.78, depthWrite: false });
+  const body = new THREE.Mesh(geo, film);
+  body.position.y = 0.135;
+  body.castShadow = true;
+  g.add(body);
+  // 中身
+  const stuff = ['#d63a2f', '#f2c230', '#e8e8e8', '#2f6ad6', '#b88b57'];
+  for (let k = 0; k < 5; k++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), mat(stuff[(k + seed) % 5], { roughness: 0.6 }));
+    m.position.set(Math.sin(k * 2.1 + seed) * 0.07, 0.07 + (k % 3) * 0.05, Math.cos(k * 1.7 + seed) * 0.06);
+    m.rotation.set(k, k * 2, 0);
+    g.add(m);
+  }
+  // 結び目
+  for (const s of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.07, 6), film);
+    ear.position.set(s * 0.025, 0.31, 0);
+    ear.rotation.z = -s * 0.6;
+    g.add(ear);
+  }
+  g.rotation.y = seed * 1.3;
+  return g;
 }
 
 function clockFaceTexture(): THREE.CanvasTexture {

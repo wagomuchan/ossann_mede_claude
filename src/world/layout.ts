@@ -27,7 +27,7 @@ export const SPOT = {
   tv: { x: 1.62, z: 0.35 },
   trash: { x: -1.07, z: -1.36 },
   boxes: { x: 1.52, z: -0.35 },
-  laundry: { x: 1.25, z: 1.18 },
+  laundry: { x: 1.42, z: 1.24 },
   fan: { x: 0.2, z: 1.32 },
   scale: { x: -0.3, z: -1.1 },
   humidifier: { x: 1.6, z: 1.08 },

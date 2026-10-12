@@ -205,11 +205,36 @@ export function planDay(day: number): Step[] {
   b.add(lastStart, tomorrow.act, { genre: tomorrow.genre, contEnd: true });
 
   // 並び順の保証と、詰まりすぎの解消
-  const steps = b.steps.sort((a, c) => a.start - c.start);
+  let steps = b.steps.sort((a, c) => a.start - c.start);
+  steps = insertBreaks(steps, r);
   for (let i = 1; i < steps.length; i++) {
     if (steps[i].start <= steps[i - 1].start) steps[i].start = steps[i - 1].start + MINUTE;
   }
   return steps.filter((s) => s.start < hm(24));
+}
+
+/** 長すぎるゲームの途中に、冷蔵庫やトイレの休憩をはさむ */
+function insertBreaks(steps: Step[], r: Rng): Step[] {
+  const out: Step[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const end = i + 1 < steps.length ? steps[i + 1].start : hm(24);
+    const len = (end - s.start) / MINUTE;
+    out.push(s);
+    if ((s.act !== 'gamePC' && s.act !== 'gameTV') || len < 150 || s.p.contEnd) continue;
+    const mid = s.start / MINUTE + len * r.range(0.4, 0.6);
+    const seed = () => Math.floor(r.next() * 1e9);
+    if (r.chance(0.5)) {
+      out.push({ act: 'fridge', start: Math.round(mid) * MINUTE, p: { seed: seed() } });
+      out.push({ ...s, start: Math.round(mid + 4) * MINUTE, p: { ...s.p, cont: false, seed: seed() } });
+    } else {
+      out.push({ act: 'leave', start: Math.round(mid) * MINUTE, p: { why: 'toilet', seed: seed() } });
+      out.push({ act: 'away', start: Math.round(mid + 4) * MINUTE, p: { why: 'toilet', seed: seed() } });
+      out.push({ act: 'back', start: Math.round(mid + 8) * MINUTE, p: { why: 'toilet', seed: seed() } });
+      out.push({ ...s, start: Math.round(mid + 11) * MINUTE, p: { ...s.p, cont: false, seed: seed() } });
+    }
+  }
+  return out;
 }
 
 const cache = new Map<number, Step[]>();

@@ -1021,7 +1021,7 @@ const laundry: ActDef = {
     const p = c.p;
     const s = c.sec;
     p.root.copy(PLACES.laundry.pos);
-    p.yaw = 0.69;
+    p.yaw = 0.83;
     P.stand(p, c.realT);
     const take = c.step.p.mode === 'take';
     const basket = P.local(p, -0.25, 0.0, 0.15);

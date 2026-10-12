@@ -87,9 +87,8 @@ export class Outside {
   private bldMat: THREE.MeshBasicMaterial;
   private winMat: THREE.MeshBasicMaterial;
   private winTextures: THREE.CanvasTexture[];
-  private leafMats: THREE.MeshStandardMaterial[] = [];
   private tree = new THREE.Group();
-  private leaves = new THREE.Group();
+  private treeMat!: THREE.MeshBasicMaterial;
   private rain: THREE.LineSegments;
   private rainPos: Float32Array;
   private flakes: THREE.Points;
@@ -166,41 +165,12 @@ export class Outside {
   }
 
   private buildTree(): void {
-    const bark = new THREE.MeshStandardMaterial({ color: '#4a3a2e', roughness: 0.9 });
-    const branch = (len: number, r: number) => {
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r, len, 6).translate(0, len / 2, 0), bark);
-      return m;
-    };
-    // 幹は壁の陰（右）に隠し、枝と葉だけが窓の上の方に見える
-    const TZ = BACK_Z + 0.14;
-    const trunk = branch(2.2, 0.07);
-    trunk.position.set(1.42, -0.1, TZ);
-    trunk.rotation.z = 0.05;
-    this.tree.add(trunk);
-    const b1 = branch(0.9, 0.035);
-    b1.position.set(1.38, 1.45, TZ);
-    b1.rotation.z = 1.2;
-    this.tree.add(b1);
-    const b2 = branch(0.6, 0.025);
-    b2.position.set(1.4, 1.2, TZ + 0.02);
-    b2.rotation.z = 1.0;
-    this.tree.add(b2);
-    const rng = new Rng(99);
-    for (let i = 0; i < 4; i++) this.leafMats.push(new THREE.MeshStandardMaterial({ color: '#5a8a3a', roughness: 0.85, flatShading: true }));
-    const geo = new THREE.IcosahedronGeometry(0.05, 0);
-    // 枝先に小さな葉の塊をたくさん付ける
-    const clusters = [[0.62, 1.86], [0.82, 1.78], [1.0, 1.9], [0.75, 1.62], [1.05, 1.66], [0.5, 1.72], [1.2, 1.8]];
-    for (const [cx, cy] of clusters) {
-      for (let i = 0; i < 16; i++) {
-        const m = new THREE.Mesh(geo, this.leafMats[(i + Math.round(cx * 10)) % 4]);
-        const a = rng.next() * Math.PI * 2, r = Math.sqrt(rng.next()) * 0.13;
-        m.position.set(cx + Math.cos(a) * r * 1.3, cy + Math.sin(a) * r, TZ + rng.range(-0.06, 0.06));
-        m.scale.setScalar(rng.range(0.6, 1.3));
-        m.rotation.set(rng.next() * 3, rng.next() * 3, 0);
-        this.leaves.add(m);
-      }
-    }
-    this.tree.add(this.leaves);
+    // 窓の上のほうに枝が張り出している。季節ごとに描いた絵を貼る
+    this.treeMat = new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false, depthWrite: false });
+    const w = 1.5, h = 0.95;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), this.treeMat);
+    plane.position.set(1.45 - w / 2, 1.1 + h / 2, BACK_Z + 0.16);
+    this.tree.add(plane);
     this.root.add(this.tree);
   }
 
@@ -229,14 +199,9 @@ export class Outside {
   private applySeason(season: Season): void {
     if (season === this.lastSeason) return;
     this.lastSeason = season;
-    const palettes: Record<Season, string[]> = {
-      spring: ['#f6c6d6', '#f2b2c8', '#fbd9e4', '#e9a3bb'],
-      summer: ['#3f7a2e', '#4f8c34', '#2f6a28', '#5c9a3a'],
-      autumn: ['#d9622b', '#e3a02a', '#b8432a', '#c97a2a'],
-      winter: ['#6a5a4a', '#6a5a4a', '#6a5a4a', '#6a5a4a'],
-    };
-    this.leafMats.forEach((m, i) => m.color.set(palettes[season][i]));
-    this.leaves.visible = season !== 'winter';
+    this.treeMat.map?.dispose();
+    this.treeMat.map = treeTexture(season);
+    this.treeMat.needsUpdate = true;
   }
 
   update(s: OutsideState, dt: number): void {
@@ -275,8 +240,10 @@ export class Outside {
     this.winMat.opacity = Math.min(1, s.night * 1.2) * (s.windowLights > 0.02 ? 1 : 0);
 
     // 木の揺れ
-    this.tree.rotation.z = Math.sin(s.t * 0.7) * 0.004 + Math.sin(s.t * 1.9) * 0.002;
-    this.leaves.rotation.z = Math.sin(s.t * 1.1) * 0.006;
+    this.tree.position.x = Math.sin(s.t * 0.7) * 0.004 + Math.sin(s.t * 1.9) * 0.002;
+    this.tree.position.y = Math.sin(s.t * 1.1) * 0.002;
+    const tb = 0.08 + day * 0.85 * (1 - over * 0.3);
+    this.treeMat.color.setRGB(tb, tb, tb).lerp(new THREE.Color('#ffb080'), s.twilight * 0.2);
 
     // 雨
     const raining = s.weather === 'rain';
@@ -318,6 +285,65 @@ export class Outside {
       (this.flakes.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
     }
   }
+}
+
+/** 窓の外の枝（季節ごと）。右から枝が伸び、先に葉や花の塊がつく */
+function treeTexture(season: Season): THREE.CanvasTexture {
+  const W = 768, H = 486;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d')!;
+  const rng = new Rng(4242);
+  const tips: [number, number][] = [];
+  const branch = (x: number, y: number, ang: number, len: number, width: number, depth: number) => {
+    const x2 = x + Math.cos(ang) * len;
+    const y2 = y + Math.sin(ang) * len;
+    ctx.strokeStyle = '#3a2e26';
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo((x + x2) / 2 + rng.range(-10, 10), (y + y2) / 2 + rng.range(-10, 10), x2, y2);
+    ctx.stroke();
+    if (depth <= 0 || width < 1.5) {
+      tips.push([x2, y2]);
+      return;
+    }
+    const n = depth > 2 ? 2 : rng.int(2, 3);
+    for (let i = 0; i < n; i++) {
+      branch(x2, y2, ang + rng.range(-0.7, 0.7), len * rng.range(0.6, 0.8), width * 0.65, depth - 1);
+    }
+    if (depth < 3) tips.push([x2, y2]);
+  };
+  branch(W + 10, H * 0.62, Math.PI + 0.35, 230, 22, 4);
+  branch(W + 10, H * 0.9, Math.PI + 0.55, 180, 16, 3);
+  const palettes: Record<Season, string[]> = {
+    spring: ['#f8d0dc', '#f4bccc', '#fde4ec', '#eeaabf', '#ffffff'],
+    summer: ['#3f7a2e', '#4f8c34', '#2f6a28', '#5c9a3a', '#6aa844'],
+    autumn: ['#d9622b', '#e3a02a', '#b8432a', '#c97a2a', '#e8b84a'],
+    winter: [],
+  };
+  const pal = palettes[season];
+  if (pal.length) {
+    const size = season === 'spring' ? 6 : 9;
+    for (const [tx, ty] of tips) {
+      const n = season === 'spring' ? 26 : 34;
+      for (let i = 0; i < n; i++) {
+        const a = rng.next() * Math.PI * 2, r = Math.sqrt(rng.next()) * 46;
+        const x = tx + Math.cos(a) * r * 1.3, y = ty + Math.sin(a) * r;
+        ctx.fillStyle = pal[rng.int(0, pal.length - 1)];
+        ctx.globalAlpha = rng.range(0.75, 1);
+        ctx.beginPath();
+        ctx.ellipse(x, y, size * rng.range(0.7, 1.3), size * rng.range(0.5, 0.9), rng.next() * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
 function dotTexture(): THREE.CanvasTexture {

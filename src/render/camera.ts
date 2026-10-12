@@ -33,8 +33,8 @@ export function fitCamera(cam: THREE.PerspectiveCamera, aspect: number, debugCam
   cam.updateProjectionMatrix();
   const dir = new THREE.Vector3(Math.sin(AZIMUTH) * Math.cos(ELEVATION), Math.sin(ELEVATION), Math.cos(AZIMUTH) * Math.cos(ELEVATION));
   const target = TARGET.clone();
-  if (portrait) target.add(new THREE.Vector3(0.1, 0, 0.1));
-  const margin = portrait ? 1.22 : 0.9;
+  if (portrait) target.add(new THREE.Vector3(-0.08, -0.05, 0.05));
+  const margin = portrait ? 1.12 : 0.99;
   let dist = 12;
   const v = new THREE.Vector3();
   for (let i = 0; i < 4; i++) {
@@ -47,7 +47,7 @@ export function fitCamera(cam: THREE.PerspectiveCamera, aspect: number, debugCam
       mx = Math.max(mx, Math.abs(v.x));
       my = Math.max(my, Math.abs(v.y));
     }
-    const need = Math.max(mx / margin, my / 0.9);
+    const need = Math.max(mx / margin, my / 0.95);
     dist *= 0.35 + 0.65 * need;
   }
   cam.position.copy(target).addScaledVector(dir, dist);

@@ -135,7 +135,8 @@ export class Lighting {
     // 天井灯（ふわっと点く）
     this.smoothCeil = damp(this.smoothCeil, inside.ceiling, inside.ceiling > this.smoothCeil ? 18 : 10, dt);
     this.ceiling.intensity = this.smoothCeil * 9;
-    this.ambient.intensity = this.smoothCeil * 0.45;
+    // 天井灯の照り返し＋昼の室内の照り返し（暖色）
+    this.ambient.intensity = this.smoothCeil * 0.45 + day * 0.22 * (1 - over * 0.4);
 
     this.monitorGlow.color.copy(inside.monitorColor);
     this.monitorGlow.intensity = inside.monitor * 0.9;
